@@ -1,0 +1,41 @@
+- name: Create nginx directory
+  become: true
+  file: state=directory path=/nginx/
+
+- name: Create nginx sites directory
+  become: true
+  file: state=directory path=/nginx/sites
+
+- debug: var=inventory_hostname
+
+- name: Copy nginx api config
+  become: true
+  template:
+    src: api.j2
+    dest: /nginx/sites/api
+
+
+- name: Copy nginx config
+  become: true
+  template:
+    src: nginx.conf.j2
+    dest: /nginx/nginx.conf
+
+- name: Run Nginx
+  become: true
+  docker_container:
+    name: "{{ container_name }}"
+    image: nginx:stable-alpine
+    state: started
+    pull: true
+    recreate: true
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "/nginx/sites/:/etc/nginx/sites-enabled/"
+      - "/nginx/nginx.conf:/etc/nginx/nginx.conf"
+      - "/root/certs-data/:/data/letsencrypt/"
+      - "/etc/letsencrypt/:/etc/letsencrypt/"
+    ports:
+      - "80:80"
+      - "443:443"
